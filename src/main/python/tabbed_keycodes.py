@@ -1,24 +1,38 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 import logging
+from typing import Callable
 
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QTabWidget, QWidget, QScrollArea, QApplication, QVBoxLayout
-from PyQt5.QtGui import QPalette
+from PyQt5.QtWidgets import (
+    QTabWidget,
+    QWidget,
+    QScrollArea,
+    QApplication,
+    QVBoxLayout,
+    QLineEdit,
+)
 
 from constants import KEYCODE_BTN_RATIO
 from widgets.display_keyboard import DisplayKeyboard
-from widgets.display_keyboard_defs import ansi_100, ansi_80, ansi_70, iso_100, iso_80, iso_70, mods, mods_narrow
+from widgets.display_keyboard_defs import (
+    ansi_100,
+    ansi_80,
+    ansi_70,
+    iso_100,
+    iso_80,
+    iso_70,
+    mods,
+    mods_narrow,
+)
 from widgets.flowlayout import FlowLayout
-from keycodes.keycodes import KEYCODES_BASIC, KEYCODES_ISO, KEYCODES_MACRO, KEYCODES_LAYERS, KEYCODES_QUANTUM, \
-    KEYCODES_BOOT, KEYCODES_MODIFIERS, \
-    KEYCODES_BACKLIGHT, KEYCODES_MEDIA, KEYCODES_SPECIAL, KEYCODES_SHIFTED, KEYCODES_USER, Keycode, \
-    KEYCODES_TAP_DANCE, KEYCODES_MIDI, KEYCODES_BASIC_NUMPAD, KEYCODES_BASIC_NAV, KEYCODES_ISO_KR
+from keycodes.keycodes import KEYCODES_USER, Keycode
 from widgets.square_button import SquareButton
 from util import tr, KeycodeDisplay
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class AlternativeDisplay(QWidget):
 
@@ -50,6 +64,29 @@ class AlternativeDisplay(QWidget):
         layout.addLayout(self.key_layout)
         self.setLayout(layout)
 
+    def filter_on_label(self, keycode_filter):
+        for btn in self.buttons:
+            btn.deleteLater()
+        self.buttons = []
+
+        for keycode in self.keycodes:
+            if not keycode_filter(keycode.label):
+                _LOGGER.debug(f"keycode.label={keycode.label}")
+                _LOGGER.debug(f"keycode.qmk_id={keycode.qmk_id}")
+                continue
+            btn = SquareButton()
+            btn.setRelSize(KEYCODE_BTN_RATIO)
+            btn.setToolTip(Keycode.tooltip(keycode.qmk_id))
+            btn.setWordWrap(True)
+            btn.clicked.connect(
+                lambda st, k=keycode: self.keycode_changed.emit(k.qmk_id)
+            )
+            btn.keycode = keycode
+            self.key_layout.addWidget(btn)
+            self.buttons.append(btn)
+
+        self.relabel_buttons()
+
     def recreate_buttons(self, keycode_filter):
         for btn in self.buttons:
             btn.deleteLater()
@@ -62,7 +99,9 @@ class AlternativeDisplay(QWidget):
             btn.setRelSize(KEYCODE_BTN_RATIO)
             btn.setToolTip(Keycode.tooltip(keycode.qmk_id))
             btn.setWordWrap(True)
-            btn.clicked.connect(lambda st, k=keycode: self.keycode_changed.emit(k.qmk_id))
+            btn.clicked.connect(
+                lambda st, k=keycode: self.keycode_changed.emit(k.qmk_id)
+            )
             btn.keycode = keycode
             self.key_layout.addWidget(btn)
             self.buttons.append(btn)
@@ -90,11 +129,15 @@ class Tab(QScrollArea):
         super().__init__(parent)
 
         self.label = label
+        self.searchbar = QLineEdit()
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.addWidget(self.searchbar)
+        self.searchbar.textChanged.connect(self.recreate_buttons_filtered)
 
         self.alternatives = []
         for kb, keys in alts:
+            _LOGGER.debug(f"{keys}")
             alt = AlternativeDisplay(kb, keys, prefix_buttons)
             alt.keycode_changed.connect(self.keycode_changed)
             self.layout.addWidget(alt)
@@ -108,7 +151,16 @@ class Tab(QScrollArea):
         w.setLayout(self.layout)
         self.setWidget(w)
 
+    def recreate_buttons_filtered(self, keycode_filter_pattern: str):
+        keycode_filter: Callable[[str], bool] = (
+            lambda x: keycode_filter_pattern.lower() in x.lower()
+        )
+        for alt in self.alternatives:
+            alt.filter_on_label(keycode_filter)
+        self.setVisible(self.has_buttons())
+
     def recreate_buttons(self, keycode_filter):
+        _LOGGER.debug(keycode_filter)
         for alt in self.alternatives:
             alt.recreate_buttons(keycode_filter)
         self.setVisible(self.has_buttons())
@@ -140,7 +192,6 @@ class Tab(QScrollArea):
 
 
 class SimpleTab(Tab):
-
     def __init__(self, parent, label, keycodes):
         super().__init__(parent, label, [(None, keycodes)])
 
@@ -163,32 +214,7 @@ class FilteredTabbedKeycodes(QTabWidget):
 
         self.keycode_filter = keycode_filter
 
-        self.tabs = [
-            SimpleTab(self, "Stratagems", KEYCODES_USER),
-           # Tab(self, "Basic", [
-           #     (ansi_100, KEYCODES_SPECIAL + KEYCODES_SHIFTED),
-           #     (ansi_80, KEYCODES_SPECIAL + KEYCODES_BASIC_NUMPAD + KEYCODES_SHIFTED),
-           #     (ansi_70, KEYCODES_SPECIAL + KEYCODES_BASIC_NUMPAD + KEYCODES_BASIC_NAV + KEYCODES_SHIFTED),
-           #     (None, KEYCODES_SPECIAL + KEYCODES_BASIC + KEYCODES_SHIFTED),
-           # ], prefix_buttons=[("Any", -1)]),
-           # Tab(self, "ISO/JIS", [
-           #     (iso_100, KEYCODES_SPECIAL + KEYCODES_SHIFTED + KEYCODES_ISO_KR),
-           #     (iso_80, KEYCODES_SPECIAL + KEYCODES_BASIC_NUMPAD + KEYCODES_SHIFTED + KEYCODES_ISO_KR),
-           #     (iso_70, KEYCODES_SPECIAL + KEYCODES_BASIC_NUMPAD + KEYCODES_BASIC_NAV + KEYCODES_SHIFTED +
-           #      KEYCODES_ISO_KR),
-           #     (None, KEYCODES_ISO),
-           # ], prefix_buttons=[("Any", -1)]),
-           # SimpleTab(self, "Layers", KEYCODES_LAYERS),
-           # Tab(self, "Quantum", [(mods, (KEYCODES_BOOT + KEYCODES_QUANTUM)),
-           #                       (mods_narrow, (KEYCODES_BOOT + KEYCODES_QUANTUM)),
-           #                       (None, (KEYCODES_BOOT + KEYCODES_MODIFIERS + KEYCODES_QUANTUM))]),
-           # SimpleTab(self, "Backlight", KEYCODES_BACKLIGHT),
-           # SimpleTab(self, "App, Media and Mouse", KEYCODES_MEDIA),
-           # SimpleTab(self, "MIDI", KEYCODES_MIDI),
-           # SimpleTab(self, "Tap Dance", KEYCODES_TAP_DANCE),
-           # SimpleTab(self, "User", KEYCODES_USER),
-           # SimpleTab(self, "Macro", KEYCODES_MACRO),
-        ]
+        self.tabs = [SimpleTab(self, "Stratagems", KEYCODES_USER)]
 
         for tab in self.tabs:
             tab.keycode_changed.connect(self.on_keycode_changed)
@@ -233,7 +259,9 @@ class TabbedKeycodes(QWidget):
         self.layout = QVBoxLayout()
 
         self.all_keycodes = FilteredTabbedKeycodes()
-        self.basic_keycodes = FilteredTabbedKeycodes(keycode_filter=keycode_filter_masked)
+        self.basic_keycodes = FilteredTabbedKeycodes(
+            keycode_filter=keycode_filter_masked
+        )
         for opt in [self.all_keycodes, self.basic_keycodes]:
             opt.keycode_changed.connect(self.keycode_changed)
             opt.anykey.connect(self.anykey)
