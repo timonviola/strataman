@@ -42,7 +42,7 @@ class MainWindow(QMainWindow):
 
         self.ui_lock_count = 0
 
-        self.settings = QSettings("Vial", "Vial")
+        self.settings = QSettings("Strataman", "Strataman")
         if self.settings.value("size", None):
             self.resize(self.settings.value("size"))
         else:
@@ -81,11 +81,7 @@ class MainWindow(QMainWindow):
         self.matrix_tester = MatrixTest(self.layout_editor)
         self.rgb_configurator = RGBConfigurator()
 
-        self.editors = [(self.keymap_editor, "Keymap"), (self.layout_editor, "Layout"), (self.macro_recorder, "Macros"),
-                        (self.rgb_configurator, "Lighting"), (self.tap_dance, "Tap Dance"), (self.combos, "Combos"),
-                        (self.key_override, "Key Overrides"), (self.qmk_settings, "QMK Settings"),
-                        (self.matrix_tester, "Matrix tester"), (self.firmware_flasher, "Firmware updater")]
-
+        self.editors = [(self.keymap_editor, "Keymap")]
         Unlocker.global_layout_editor = self.layout_editor
         Unlocker.global_main_window = self
 
@@ -189,7 +185,7 @@ class MainWindow(QMainWindow):
         keyboard_reset_act.setShortcut("Ctrl+B")
         keyboard_reset_act.triggered.connect(self.reboot_to_bootloader)
 
-        keyboard_layout_menu = self.menuBar().addMenu(tr("Menu", "Keyboard layout"))
+        self.keyboard_layout_menu = self.menuBar().addMenu(tr("Menu", "Keyboard layout"))
         keymap_group = QActionGroup(self)
         selected_keymap = self.settings.value("keymap")
         for idx, keymap in enumerate(KEYMAPS):
@@ -200,7 +196,7 @@ class MainWindow(QMainWindow):
                 self.change_keyboard_layout(idx)
                 act.setChecked(True)
             keymap_group.addAction(act)
-            keyboard_layout_menu.addAction(act)
+            self.keyboard_layout_menu.addAction(act)
         # check "QWERTY" if nothing else is selected
         if keymap_group.checkedAction() is None:
             keymap_group.actions()[0].setChecked(True)
@@ -226,7 +222,7 @@ class MainWindow(QMainWindow):
             if theme_group.checkedAction() is None:
                 theme_group.actions()[0].setChecked(True)
 
-        about_vial_act = QAction(tr("MenuAbout", "About Vial..."), self)
+        about_vial_act = QAction(tr("MenuAbout", "About Strataman..."), self)
         about_vial_act.triggered.connect(self.about_vial)
         self.about_keyboard_act = QAction("", self)
         self.about_keyboard_act.triggered.connect(self.about_keyboard)
@@ -295,8 +291,10 @@ class MainWindow(QMainWindow):
         self.refresh_tabs()
 
     def rebuild(self):
-        # don't show "Security" menu for bootloader mode, as the bootloader is inherently insecure
-        self.security_menu.menuAction().setVisible(isinstance(self.autorefresh.current_device, VialKeyboard))
+        # Hide security and keyboard layout menus
+        self.security_menu.menuAction().setVisible(False)
+        # Hide layout menu
+        self.keyboard_layout_menu.menuAction().setVisible(False)
 
         self.about_keyboard_act.setVisible(False)
         if isinstance(self.autorefresh.current_device, VialKeyboard):
@@ -410,10 +408,10 @@ class MainWindow(QMainWindow):
         self.current_tab = new_tab
 
     def about_vial(self):
-        title = "About Vial"
-        text = 'Vial {}<br><br>Python {}<br>Qt {}<br><br>' \
+        title = "About Strataman"
+        text = 'Strataman is a modified version of Vial<br>Strataman {}<br><br>Python {}<br>Qt {}<br><br>' \
                'Licensed under the terms of the<br>GNU General Public License (version 2 or later)<br><br>' \
-               '<a href="https://get.vial.today/">https://get.vial.today/</a>' \
+               '<a href="https://github.com/timonviola/strataman">https://github.com/timonviola/strataman</a>' \
                .format(qApp.applicationVersion(),
                        platform.python_version(), QT_VERSION_STR)
 

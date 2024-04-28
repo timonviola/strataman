@@ -1,21 +1,20 @@
-### vial-gui
+### strataman
+
+Stratagem management system
 
 # Docs and getting started
+This project is a fork of [vial-gui](https://github.com/vial-kb/vial-gui). Meanwhile Vial-gui is a general purpose tool, this project specializes on remapping macros to one specific keyboard for one specific game.
 
-### Please visit [get.vial.today](https://get.vial.today/) to get started with Vial
+To get started, go to Releases and download the latest installer: e.g.'*-win-installer'.
 
-Vial is an open-source cross-platform (Windows, Linux and Mac) GUI and a QMK fork for configuring your keyboard in real time.
-
-
-![](https://get.vial.today/img/vial-win-1.png)
-
+![screenshot](misc/screenshot.png)
 
 ---
 
 
 #### Releases
 
-Visit https://get.vial.today/ to download a binary release of Vial.
+Development focuses on Windows targets.
 
 #### Development
 

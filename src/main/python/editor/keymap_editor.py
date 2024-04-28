@@ -33,12 +33,13 @@ class KeymapEditor(BasicEditor):
         self.layout_layers = QHBoxLayout()
         self.layout_size = QVBoxLayout()
         layer_label = QLabel(tr("KeymapEditor", "Layer"))
-
         layout_labels_container = QHBoxLayout()
         layout_labels_container.addWidget(layer_label)
-        layout_labels_container.addLayout(self.layout_layers)
         layout_labels_container.addStretch()
         layout_labels_container.addLayout(self.layout_size)
+        # hide layers
+        # layout_labels_container.addLayout(self.layout_layers)
+        layer_label.setVisible(False)
 
         # contains the actual keyboard
         self.container = KeyboardWidget(layout_editor)

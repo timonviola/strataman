@@ -1,6 +1,6 @@
 {
-    "app_name": "Vial",
-    "author": "xyz",
+    "app_name": "Strataman",
+    "author": "timonviola",
     "main_module": "src/main/python/main.py",
-    "version": "0.7.1"
+    "version": "1.0.0"
 }

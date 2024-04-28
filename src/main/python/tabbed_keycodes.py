@@ -130,6 +130,7 @@ class Tab(QScrollArea):
 
         self.label = label
         self.searchbar = QLineEdit()
+        self.searchbar.setPlaceholderText("Start typing...")
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.addWidget(self.searchbar)
